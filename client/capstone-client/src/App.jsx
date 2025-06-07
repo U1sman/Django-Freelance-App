@@ -2,7 +2,7 @@ import BrowseGigs from "./pages/browseGigs";
 import Login from "./pages/login";
 import Signup from "./pages/signup";
 import BrowseCategoryGigs from "./pages/BrowseCategoryGIgs";
-import GigDetailedView from "./pages/gigDetailedView";
+import GigDetailedView from "./pages/GigDetailedView/GigDetailedView";
 
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

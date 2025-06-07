@@ -4,6 +4,7 @@ from .models import *
 
 class UserSerializer(serializers.ModelSerializer):
     country = CountrySerializerField()
+    country_name = serializers.SerializerMethodField()
     class Meta:
         model= User
         fields = [
@@ -13,13 +14,18 @@ class UserSerializer(serializers.ModelSerializer):
         'first_name',
         'last_name',
         'bio',
+        'tagline',
         'profile_pic',
         'country',
+        'country_name',
         'languages',
         'skills',
         'is_seller',
         'joined_date',
     ]
+        
+    def get_country_name(self, obj):
+        return obj.country.name if obj.country else None
         
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -63,10 +69,28 @@ class SellerReviewSerializer(serializers.ModelSerializer):
         model= SellerReview
         fields = '__all__'
 
+
+class PricingOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model= PricingOption
+        fields= '__all__'
+
+
+class PricingPlanSerializer(serializers.ModelSerializer):
+    pricing_options = PricingOptionSerializer(many=True, read_only=True)
     
+    class Meta:
+        model= PricingPlan
+        fields= '__all__'
+
+
 class GigSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
+    pricing_plan = PricingPlanSerializer(read_only=True)
+    related_seller = UserSerializer()
     
     class Meta:
         model= Gig
         fields = '__all__'
+
+

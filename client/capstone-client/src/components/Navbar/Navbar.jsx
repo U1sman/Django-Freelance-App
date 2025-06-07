@@ -1,7 +1,7 @@
 import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass, faBell } from '@fortawesome/free-solid-svg-icons'
-import styles from './Navbar.module.css'
+import styles from './Navbar.module.scss'
 
 const Navbar = () => {
   return (

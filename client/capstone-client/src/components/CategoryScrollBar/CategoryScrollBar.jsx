@@ -2,7 +2,7 @@ import { faDisplay } from '@fortawesome/free-solid-svg-icons';
 import React from 'react'
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import styles from './CategoryScrollBar.module.css'
+import styles from './CategoryScrollBar.module.scss'
 
 const CategoryScrollBar = () => {
     

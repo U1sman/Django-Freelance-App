@@ -18,6 +18,7 @@ TIER_CHOICES = [
 
 class User(AbstractUser):
     bio= models.TextField(blank=True, max_length=1000)
+    tagline= models.CharField(blank=True, max_length=100)
     joined_date= models.DateField(auto_now_add=True)
     profile_pic= models.ImageField(default= "images/profile_pics/default_profile.jpg", upload_to="images/profile_pics/")
     skills= models.ManyToManyField("Skill", blank=True, related_name="users")
@@ -83,15 +84,21 @@ class Category(models.Model):
 
 
 class PricingPlan(models.Model):
-    related_gig= models.ForeignKey("Gig", on_delete=models.CASCADE, related_name="pricing_plans")
+    related_gig= models.OneToOneField("Gig", on_delete=models.CASCADE, related_name="pricing_plan")
+
+    def  __str__(self):
+        return f"(({self.related_gig.title})) Pricing Plan"
 
 
 class PricingOption(models.Model):
     related_pricingPlan= models.ForeignKey("PricingPlan", on_delete=models.CASCADE, related_name="pricing_options")
     type= models.CharField(choices=TIER_CHOICES, max_length=10)
     price= models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    delivery_time= models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)])
+    delivery_time= models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)], null=True, blank=True)
     description= models.CharField(max_length=200)
+
+    def  __str__(self):
+        return f"({self.type}) Pricing Option for {self.related_pricingPlan}"
 
 
 class GigReview(models.Model):
@@ -112,5 +119,5 @@ class SellerReview(models.Model):
     author= models.ForeignKey("User", related_name="user_seller_reviews", on_delete= models.CASCADE)
     created_at= models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
+    def __str__(self):    
         return f"RelatedSeller: {self.related_seller.username} author: {self.author.username} rating: {self.rating}"
