@@ -4,25 +4,22 @@
     import Navbar from '../../components/Navbar/Navbar';
     import CategoryScrollBar from '../../components/CategoryScrollBar/CategoryScrollBar';
     import styles from './GigDetailedView.module.scss'
+    import { fetchGig } from '../../utils';
 
     const GigDetailedView = () => {
 
         const params = useParams();
         const [gig, setGig] = useState({});
-        const fetchGig = async () =>{
-            let response = await fetch(`http://127.0.0.1:8000/api/get_gig/${Number(params.gig_id)}/`, {
-            method: 'GET',
-            });
-            let result = await response.json();
-            setGig(result)
-        };
 
-        useEffect( () => {
-            fetchGig()
+        useEffect( () => { 
+            const fetchData = async ()=>{
+                const data = await fetchGig(Number(params.gig_id));
+                setGig(data);
+            }
+            fetchData();
             
         }, [Number(params.gig_id)]);
-
-        console.log(gig.related_seller);
+        
         return (
         <>
 
@@ -43,6 +40,7 @@
                             <p>price: {pricingOption.price}</p>
                             <p>description: {pricingOption.description}</p>
                             <p>delivery_time: {pricingOption.delivery_time}</p>
+                            <Link to={`/gig/${gig.id}/orderDetails/${pricingOption.id}`}><button className="select">Select</button></Link>
                         </div>
                     )
                 })}
@@ -58,6 +56,9 @@
                 <p>from: {gig.related_seller?.country_name}</p>
                 <p>Member Since: {gig.related_seller?.joined_date}</p>
 
+            </div>
+            <div className="ReviewSection">
+                this is a placeholder for the review section
             </div>
         </div>
 

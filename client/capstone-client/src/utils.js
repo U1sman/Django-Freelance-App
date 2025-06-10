@@ -23,3 +23,12 @@ export const checkAuthenticatedStatus= async ()=>{
         return false  
       }
 }
+
+
+export const fetchGig = async (gigId) =>{
+      let response = await fetch(`http://127.0.0.1:8000/api/get_gig/${gigId}/`, {
+      method: 'GET',
+      });
+      let result = await response.json();
+      return result
+  };

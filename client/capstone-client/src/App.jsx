@@ -3,6 +3,7 @@ import Login from "./pages/login";
 import Signup from "./pages/signup";
 import BrowseCategoryGigs from "./pages/BrowseCategoryGIgs";
 import GigDetailedView from "./pages/GigDetailedView/GigDetailedView";
+import OrderDetails from "./pages/OrderDetails/OrderDetails";
 
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -36,6 +37,10 @@ function App() {
     element: <GigDetailedView/>
   },
 
+  {
+    path:"/gig/:gig_id/orderDetails/:pricingOptionId",
+    element: <OrderDetails/>
+  },
   ])
 
   return (
