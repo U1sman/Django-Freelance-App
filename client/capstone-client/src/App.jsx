@@ -1,13 +1,16 @@
-import BrowseGigs from "./pages/browseGigs";
-import Login from "./pages/login";
-import Signup from "./pages/signup";
-import BrowseCategoryGigs from "./pages/BrowseCategoryGIgs";
+import BrowseGigs from "./pages/BrowseGigs/BrowseGigs";
+import Login from "./pages/Login/Login";
+import Signup from "./pages/Signup/Signup";
+import BrowseCategoryGigs from "./pages/BrowseCategoryGigs/BrowseCategoryGigs";
 import GigDetailedView from "./pages/GigDetailedView/GigDetailedView";
-import OrderDetails from "./pages/OrderDetails/OrderDetails";
+import ProvideRequirements from "./pages/ProvideRequirements/ProvideRequirements";
+import Checkout from "./pages/Checkout/Checkout";
+import Order from "./pages/Order/Order";
 
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope } from '@fortawesome/free-solid-svg-icons';
+
 
 function App() {
 
@@ -38,9 +41,19 @@ function App() {
   },
 
   {
-    path:"/gig/:gig_id/orderDetails/:pricingOptionId",
-    element: <OrderDetails/>
+    path:"/gig/:gig_id/provideRequirements/:pricingOptionId",
+    element: <ProvideRequirements/>
   },
+
+  {
+    path:"/gig/:gig_id/checkout",
+    element: <Checkout/>
+  },
+
+  {
+    path:"order/:order_id",
+    element: <Order/>
+  }
   ])
 
   return (

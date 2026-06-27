@@ -1,3 +1,6 @@
+import { isValid, format } from "date-fns";
+
+
 export const getCSRFToken= ()=> {
   const cookies = document.cookie.split(';');
   // This just finds the value of the "csrftoken" cookie in your browser
@@ -9,26 +12,9 @@ export const getCSRFToken= ()=> {
   return null;
 }
 
-
-export const checkAuthenticatedStatus= async ()=>{
-  let response = await fetch("http://127.0.0.1:8000/api/check_authenticated_status/", {
-      method: 'GET',
-      credentials: "include",
-      });
-      if (response.ok){
-        let result = await response.json();
-        return result["isAuthenticated"]
-      }
-      else{
-        return false  
-      }
+export const formatDateTime= (utcDate)=>{
+  const dateObject = new Date(utcDate);
+  const formattedDate = isValid(dateObject)
+  ? format(dateObject, "MMM d, yyyy 'at' h:mm a") : "Unknown";
+  return formattedDate
 }
-
-
-export const fetchGig = async (gigId) =>{
-      let response = await fetch(`http://127.0.0.1:8000/api/get_gig/${gigId}/`, {
-      method: 'GET',
-      });
-      let result = await response.json();
-      return result
-  };
