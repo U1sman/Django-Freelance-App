@@ -11,7 +11,6 @@ class User(AbstractUser):
     id= models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
     bio= models.TextField(blank=True, max_length=1000)
     tagline= models.CharField(blank=True, max_length=100)
-    joined_date= models.DateField(auto_now_add=True)
     profile_pic= models.ImageField(default= "images/profile_pics/default_profile.jpg", upload_to="images/profile_pics/")
     skills= models.ManyToManyField("Skill", blank=True, related_name="users")
     country= CountryField(blank_label='(select country)', blank=True)
@@ -129,7 +128,7 @@ class GigReview(models.Model):
     author = models.ForeignKey("User", related_name="gig_review_author", on_delete= models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
+    def __str__(self):  
         return f"RelatedGig: {self.related_gig.title} author: {self.author.username} rating: {self.rating}"
     
 

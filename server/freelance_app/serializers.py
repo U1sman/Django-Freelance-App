@@ -22,7 +22,7 @@ class UserSerializer(serializers.ModelSerializer):
             'languages',
             'skills',
             'is_seller',
-            'joined_date',
+            'date_joined',
         ]
         
     def get_country_name(self, obj):
@@ -32,7 +32,7 @@ class UserSerializer(serializers.ModelSerializer):
 class MinimalUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'profile_pic', 'first_name', 'last_name']
+        fields = ['id', 'username', 'profile_pic', 'first_name', 'last_name', 'date_joined']
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -65,6 +65,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class GigReviewSerializer(serializers.ModelSerializer):
+    author = MinimalUserSerializer(read_only=True)
     class Meta:
         model = GigReview
         fields = '__all__'

@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'countries_plus',
     'languages_plus',
+    'debug_toolbar'
 
 ]
 
@@ -52,6 +53,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -153,3 +155,13 @@ SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = False
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 12 ,
+}
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+    "localhost",
+]
