@@ -5,6 +5,7 @@ from django.core.validators import MinLengthValidator, MinValueValidator, MaxLen
 import uuid
 from django.db.models import TextChoices
 from languages_plus.models import Language
+from decimal import Decimal 
 
 
 class User(AbstractUser):
@@ -24,14 +25,14 @@ class User(AbstractUser):
 class Gig(models.Model):
     id= models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
     related_seller= models.ForeignKey("User", related_name="gigs", on_delete=models.CASCADE)
-    title = models.CharField(max_length=100)
-    description= models.TextField(max_length=2000)
-    cover_image= models.ImageField(upload_to="images/gig_covers/")
-    category= models.ForeignKey("Category", related_name="gigs", on_delete=models.CASCADE)
+    title = models.CharField(max_length=100, validators=[MinLengthValidator(15, message="Title must be atleast 15 characters long")])
+    description= models.TextField(max_length=2000, validators=[MinLengthValidator(50, message="Description must be at least 50 characters long.")])  
+    cover_image= models.ImageField(upload_to="images/gig_covers/", blank=True, null=True)
+    category= models.ForeignKey("Category", related_name="gigs", on_delete=models.SET_NULL, null=True)
     created_on= models.DateTimeField(auto_now_add=True)
     allow_custom_offers = models.BooleanField(default=False, blank=True)
-    starting_price = models.DecimalField(max_digits=10, decimal_places=2)
-   
+    starting_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('1.00'), message="Starting price cannot be less than $1.00.")])
+    
     def __str__(self):
         return f"Title: {self.title} By: {self.related_seller.username}"
 
@@ -44,10 +45,10 @@ class Order(models.Model):
         OVERDUE = 'OVERDUE', 'Overdue'
 
     id= models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
-    buyer= models.ForeignKey("User", on_delete=models.CASCADE, related_name="orders")
-    seller= models.ForeignKey("User", on_delete=models.CASCADE, related_name="orders_received")
-    related_gig= models.ForeignKey("Gig", on_delete=models.CASCADE, related_name="gig_orders")
-    related_pricing_option= models.ForeignKey("PricingOption", on_delete=models.CASCADE, related_name="orders")
+    buyer= models.ForeignKey("User", on_delete=models.PROTECT, related_name="orders")
+    seller= models.ForeignKey("User", on_delete=models.PROTECT, related_name="orders_received")
+    related_gig= models.ForeignKey("Gig", on_delete=models.SET_NULL, null=True, related_name="gig_orders")
+    related_pricing_option= models.ForeignKey("PricingOption", on_delete=models.SET_NULL, related_name="orders", null=True, blank=True)
     price= models.DecimalField(max_digits=10, decimal_places=2)
     requirements = models.TextField(max_length=3000)
     status= models.CharField(max_length=20, choices=Status.choices, default=Status.IN_PROGRESS)
@@ -109,7 +110,6 @@ class PricingOption(models.Model):
         BASIC = 'BASIC', 'Basic'
         STANDARD = 'STANDARD', 'Standard'
         PREMIUM = 'PREMIUM', 'Premium'
-        CUSTOM = 'CUSTOM', 'Custom'
 
     related_pricingPlan= models.ForeignKey("PricingPlan", on_delete=models.CASCADE, related_name="pricing_options")
     tier= models.CharField(choices=Tier.choices, max_length=10)
@@ -122,10 +122,11 @@ class PricingOption(models.Model):
 
 
 class GigReview(models.Model):
-    related_gig= models.ForeignKey("Gig", related_name="gig_reviews", on_delete=models.CASCADE)
+    related_gig= models.ForeignKey("Gig", related_name="gig_reviews", on_delete= models.CASCADE)
+    related_order= models.OneToOneField("Order", related_name="review", on_delete= models.CASCADE)
     body= models.TextField(max_length=500)
     rating= models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
-    author = models.ForeignKey("User", related_name="gig_review_author", on_delete= models.CASCADE)
+    author = models.ForeignKey("User", related_name="gig_review_author", on_delete= models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):  
