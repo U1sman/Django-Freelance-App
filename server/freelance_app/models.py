@@ -6,6 +6,7 @@ import uuid
 from django.db.models import TextChoices
 from languages_plus.models import Language
 from decimal import Decimal 
+from datetime import datetime, timedelta
 
 
 class User(AbstractUser):
@@ -27,7 +28,7 @@ class Gig(models.Model):
     related_seller= models.ForeignKey("User", related_name="gigs", on_delete=models.CASCADE)
     title = models.CharField(max_length=100, validators=[MinLengthValidator(15, message="Title must be atleast 15 characters long")])
     description= models.TextField(max_length=2000, validators=[MinLengthValidator(50, message="Description must be at least 50 characters long.")])  
-    cover_image= models.ImageField(upload_to="images/gig_covers/", blank=True, null=True)
+    thumbnail= models.ImageField(upload_to="images/gig_covers/", blank=True, null=True)
     category= models.ForeignKey("Category", related_name="gigs", on_delete=models.SET_NULL, null=True)
     created_on= models.DateTimeField(auto_now_add=True)
     allow_custom_offers = models.BooleanField(default=False, blank=True)
@@ -52,27 +53,27 @@ class Order(models.Model):
     price= models.DecimalField(max_digits=10, decimal_places=2)
     requirements = models.TextField(max_length=3000)
     status= models.CharField(max_length=20, choices=Status.choices, default=Status.IN_PROGRESS)
-    delivery_time= models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)])
-    reqs_submitted_at = models.DateTimeField(auto_now_add=True, null= True, blank=True) 
+    delivery_days= models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)]) 
+    reqs_submitted_at= models.DateTimeField(auto_now_add=True, null= True, blank=True) 
     placed_at= models.DateTimeField(auto_now_add=True)
+    due_at = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        if not self.due_at:
+            self.due_at = timezone.now() + timedelta(days=self.delivery_days)
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"RelatedGig: {self.related_gig.title} Buyer: {self.buyer.username} Status: {self.status}"
-
-
-class OrderActivityLog(models.Model):
-    related_order= models.OneToOneField("Order", on_delete=models.CASCADE, related_name="activity_log")
-
-    def __str__(self):
-        return f"ActivityLog for {self.related_order.id}"
+        return f"RelatedGig: {self.related_gig.title} Seller: {self.seller.username} Status: {self.status}"
 
 
 class OrderActivity(models.Model):
-    related_activityLog= models.ForeignKey("OrderActivityLog", on_delete=models.CASCADE, related_name="order_activity")
-    details= models.TextField(max_length=300)
+    related_order= models.ForeignKey("Order", on_delete=models.CASCADE, related_name="activities", null=True, blank=True)
+    details= models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Acivity in ActivityLog:{self.related_activityLog.id}"
+        return f"order: {self.related_order}"
 
 
 class Education(models.Model):
@@ -98,34 +99,27 @@ class Category(models.Model):
         return f"{self.name}"
 
 
-class PricingPlan(models.Model): 
-    related_gig= models.OneToOneField("Gig", on_delete=models.CASCADE, related_name="pricing_plan")
-
-    def __str__(self):
-        return f"(({self.related_gig.title})) Pricing Plan"
-
-
 class PricingOption(models.Model):
     class Tier(models.TextChoices):
         BASIC = 'BASIC', 'Basic'
         STANDARD = 'STANDARD', 'Standard'
         PREMIUM = 'PREMIUM', 'Premium'
 
-    related_pricingPlan= models.ForeignKey("PricingPlan", on_delete=models.CASCADE, related_name="pricing_options")
+    related_gig= models.ForeignKey("Gig", on_delete=models.CASCADE, related_name="pricing_options", null= True, blank=True)
     tier= models.CharField(choices=Tier.choices, max_length=10)
     price= models.DecimalField(max_digits=10, decimal_places=2)
-    delivery_time= models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)])
+    delivery_days= models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)])
     description= models.CharField(max_length=200, null=True, blank=True)
 
     def __str__(self):
-        return f"({self.tier}) Pricing Option for {self.related_pricingPlan}"
+        return f"({self.tier}) Pricing Option for {self.related_gig}"
 
 
 class GigReview(models.Model):
     related_gig= models.ForeignKey("Gig", related_name="gig_reviews", on_delete= models.CASCADE)
     related_order= models.OneToOneField("Order", related_name="review", on_delete= models.CASCADE)
     body= models.TextField(max_length=500)
-    rating= models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    rating= models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     author = models.ForeignKey("User", related_name="gig_review_author", on_delete= models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -136,7 +130,7 @@ class GigReview(models.Model):
 class SellerReview(models.Model):
     related_seller= models.ForeignKey("User", related_name="seller_reviews", on_delete=models.CASCADE)
     body= models.TextField(max_length=500)
-    rating= models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    rating= models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     author= models.ForeignKey("User", related_name="user_seller_reviews", on_delete= models.CASCADE)
     created_at= models.DateTimeField(auto_now_add=True)
 
@@ -173,7 +167,7 @@ class DeliveryAttachment(models.Model):
         super().save(*args, **kwargs)
         
     def __str__(self):
-        return f"Attachment for DELIVERY: {self.related_delivery.id}"
+        return f"Attachment for Delivery #{self.related_delivery.id}"
     
 
 class Offer(models.Model):
@@ -184,7 +178,7 @@ class Offer(models.Model):
         QUOTED = 'QUOTED','Quoted'
     status= models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING_RESPONSE)
     requirements = models.TextField(max_length=3000)
-    delivery_time= models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)])
+    delivery_days= models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)])
     related_gig= models.ForeignKey("Gig", on_delete=models.CASCADE, related_name="offers")
     sender= models.ForeignKey("User", on_delete=models.CASCADE, related_name="offers_sent")
     receiver= models.ForeignKey("User", on_delete=models.CASCADE, related_name="offers_received")
@@ -203,8 +197,8 @@ class Quotation(models.Model):
     status= models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING_RESPONSE)
     price= models.DecimalField(max_digits=10, decimal_places=2)
     remarks= models.TextField(max_length=1000)  
-    delivery_time= models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)])
-    related_offer= models.ForeignKey("Offer", on_delete=models.CASCADE, related_name="quotations")
+    delivery_days= models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)])
+    related_offer= models.OneToOneField("Offer", on_delete=models.CASCADE, related_name="quotations")
     sent_at= models.DateTimeField(auto_now_add=True)
     responded_at= models.DateTimeField(null=True, blank=True)
     sender= models.ForeignKey("User", on_delete=models.CASCADE, related_name="quotations_sent")
@@ -212,3 +206,14 @@ class Quotation(models.Model):
 
     def __str__(self):
         return f"Quotation for Gig: {self.related_offer.related_gig.title}"
+
+
+class RevisionRequest(models.Model):
+    related_order = models.ForeignKey("Order", on_delete=models.CASCADE, related_name="revisions")
+    related_delivery = models.OneToOneField("Delivery", on_delete=models.CASCADE, related_name="revision_request")
+    buyer = models.ForeignKey(User, on_delete=models.CASCADE)
+    requirements = models.TextField(max_length=2000) 
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Revision for Order #{self.related_order.id}"

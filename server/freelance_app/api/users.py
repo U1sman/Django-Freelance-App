@@ -1,16 +1,4 @@
-from django.db import IntegrityError
-from django.shortcuts import render
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
-from ..models import *
-from ..serializers import *
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth import authenticate, logout
-from django.contrib.auth import login as django_login
-from django.db import DatabaseError
+from .common import *
 
 @api_view(['POST'])
 def signup(request):

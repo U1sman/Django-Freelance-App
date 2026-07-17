@@ -1,63 +1,5 @@
-from rest_framework import serializers
-from django_countries.serializer_fields import CountryField as CountrySerializerField
-from .models import *
-from datetime import datetime, timedelta
-import json
-
-class UserSerializer(serializers.ModelSerializer):
-    country = CountrySerializerField()
-    country_name = serializers.SerializerMethodField()
-    class Meta:
-        model = User
-        fields = [
-            'id',
-            'username',
-            'email',
-            'first_name',
-            'last_name',
-            'bio',
-            'tagline',
-            'profile_pic',
-            'country',
-            'country_name',
-            'languages',
-            'skills',
-            'is_seller',
-            'date_joined',
-        ]
-        
-    def get_country_name(self, obj):
-        return obj.country.name if obj.country else None
-
-
-class MinimalUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'profile_pic', 'first_name', 'last_name', 'date_joined']
-
-
-class OrderSerializer(serializers.ModelSerializer):
-    delivery_date = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Order
-        fields = '__all__'
-
-    def get_delivery_date(self, obj):
-        return obj.placed_at + timedelta(days=obj.related_pricing_option.delivery_time)
-   
-
-class EducationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Education
-        fields = '__all__'
-
-
-class SkillSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Skill
-        fields = '__all__'
-
+from .common import * 
+from freelance_app.serializers import UserSerializer, MinimalUserSerializer
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -65,35 +7,8 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class GigReviewSerializer(serializers.ModelSerializer):
-    author = MinimalUserSerializer(read_only=True)
-    class Meta:
-        model = GigReview
-        fields = '__all__'
-
-
-class SellerReviewSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SellerReview
-        fields = '__all__'
-
-
-class PricingOptionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PricingOption
-        fields = '__all__'
-
-
-class PricingPlanSerializer(serializers.ModelSerializer):
-    
-    class Meta:
-        model = PricingPlan
-        fields = '__all__'
-
-
 class DetailedGigSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
-    pricing_plan = PricingPlanSerializer(read_only=True)
     related_seller = UserSerializer(read_only=True)
     rating = serializers.FloatField(read_only=True)
     orders_num = serializers.IntegerField(read_only=True)
@@ -104,7 +19,8 @@ class DetailedGigSerializer(serializers.ModelSerializer):
 
 
 class MinimalGigSerializer(serializers.ModelSerializer):
-    related_seller = MinimalUserSerializer(read_only=True)
+    seller_username = serializers.CharField(source= 'related_seller.username', read_only= True)
+    seller_profilepic = serializers.ImageField(source= 'related_seller.profile_pic', read_only= True)
     rating = serializers.FloatField(read_only=True)
     orders_num = serializers.IntegerField(read_only=True)
 
@@ -113,53 +29,38 @@ class MinimalGigSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'title',
-            'cover_image',
+            'thumbnail',
             'starting_price',
-            'related_seller',
             'rating',
             'orders_num',
-        ] 
+            'seller_username',
+            'seller_profilepic',
+        ]
 
 
-class DeliveryAttachmentSerializer(serializers.ModelSerializer):
+class PricingOptionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = DeliveryAttachment
+        model = PricingOption
         fields = '__all__'
 
 
-class DeliverySerializer(serializers.ModelSerializer):
-    attachments = DeliveryAttachmentSerializer(many=True, read_only=True)
-    sender = MinimalUserSerializer(read_only=True)
-
+class PricingOptionDetailsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Delivery
+        model = PricingOption
+        fields = [
+            'id',
+            'description',
+        ]
+
+
+class GigReviewSerializer(serializers.ModelSerializer):
+    author = MinimalUserSerializer(read_only=True)
+    class Meta:
+        model = GigReview
         fields = '__all__'
 
 
-class OrderActivityLogSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = OrderActivityLog
-        fields = '__all__'
-
-
-class OrderActivitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = OrderActivity
-        fields = '__all__'
-
-
-class OfferSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Offer
-        fields = '__all__'
-
-
-class QuotationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Quotation
-        fields = '__all__'
-
-
+#CREATE 
 class CreatePricingOptionSerializer(serializers.ModelSerializer):
     #Coverts the tier string from the frontend into a django textchoice as defined in the models
     tier = serializers.ChoiceField(choices=PricingOption.Tier.choices)
@@ -168,14 +69,14 @@ class CreatePricingOptionSerializer(serializers.ModelSerializer):
         fields = [
             'tier',
             'price',
-            'delivery_time',
+            'delivery_days',
             'description',
         ]
 
 
-class CreateGigAndPricingPlanSerializer(serializers.ModelSerializer):
+class CreateGigAndPricingOptionSerializer(serializers.ModelSerializer):
     pricing_options = CreatePricingOptionSerializer(many=True)
-    cover_image = serializers.ImageField(required=False, allow_null=True)
+    thumbnail = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Gig        
@@ -183,7 +84,7 @@ class CreateGigAndPricingPlanSerializer(serializers.ModelSerializer):
             'title',
             'description',
             'category', 
-            'cover_image', 
+            'thumbnail', 
             'starting_price', 
             'allow_custom_offers',
             'pricing_options'
@@ -215,20 +116,19 @@ class CreateGigAndPricingPlanSerializer(serializers.ModelSerializer):
         pricing_options_data = validated_data.pop('pricing_options')
         seller = self.context['request'].user
         gig = Gig.objects.create(related_seller=seller, **validated_data)
-        pricing_plan = PricingPlan.objects.create(related_gig=gig)
         # Loop, instantiate, and bulk create the options(bulk create batches all the options together and creates them in one query only)
         options_to_create = [
             PricingOption(
-                related_pricingPlan=pricing_plan, 
+                related_gig=gig, 
                 tier=option_data['tier'],
                 price=option_data['price'],
-                delivery_time=option_data['delivery_time'],
+                delivery_days=option_data['delivery_days'],
                 description=option_data.get('description', '')
             )
             for option_data in pricing_options_data
         ]
         PricingOption.objects.bulk_create(options_to_create)
-
+        
         return gig
 
 

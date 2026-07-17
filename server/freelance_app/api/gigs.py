@@ -1,18 +1,4 @@
-from django.db import IntegrityError
-from django.shortcuts import render
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
-from rest_framework import status
-from ..models import *
-from ..serializers import *
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth import authenticate, logout
-from django.contrib.auth import login as django_login
-from django.db import DatabaseError
-from django.db.models import Avg, Count, Q
-from rest_framework.pagination import LimitOffsetPagination, PageNumberPagination
+from .common import *
 
 @api_view(['GET'])   
 def get_gigs(request):
@@ -48,7 +34,7 @@ def get_gigs(request):
 @api_view(['GET'])
 def get_gig(request, gig_id):
     try:
-        gig = Gig.objects.filter(id= gig_id).select_related(
+        gig_queryset = Gig.objects.select_related(
             'related_seller', 
             'category', 
             'pricing_plan'
@@ -59,13 +45,12 @@ def get_gig(request, gig_id):
         ).annotate(
             rating=Avg('gig_reviews__rating'),
             orders_num=Count('gig_orders', filter=Q(gig_orders__status="COMPLETED"), distinct=True)
-        ).first()
+        )
+        gig = get_object_or_404(gig_queryset, id=gig_id)
         serialized_gig = DetailedGigSerializer(gig).data
         return Response(serialized_gig)
-    except Gig.DoesNotExist:
-        return Response({"error": "Could not get Gig"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({"error": f"Failed to get gigr: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": f"Failed to get gig: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
 @api_view(['GET'])
@@ -118,12 +103,11 @@ def create_gig_review(request):
         return Response({"error": f"Failed to create gig review: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_gig_and_pricing_plan(request):
     try:
-        serializer = CreateGigAndPricingPlanSerializer(data= request.data, context= {'request': request})
+        serializer = CreateGigAndPricingOptionSerializer(data= request.data, context= {'request': request})
         if serializer.is_valid():
             new_gig = serializer.save()
             return Response(
